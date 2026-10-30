@@ -1,0 +1,10 @@
+# Python 3.12 ili noviji. Instalacija: python -m venv .venv && .venv/bin/pip install -r requirements.txt
+numpy>=2.0
+scipy>=1.13
+matplotlib>=3.9
+ipywidgets>=8.1
+jupyterlab>=4.2
+nbclient>=0.10
+ipykernel>=6.29
+# testovi (tests/test_biljeznice.py)
+pytest>=8.0
