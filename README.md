@@ -36,14 +36,17 @@ Repozitorij možete preuzeti s `git clone` ili kao ZIP (gumb *Code → Download 
 ```
 P08_konvolucija_zvuk.ipynb   bilježnica uz predavanje P08
 zvuk/                        zvučni zapisi (izvor i licenca: LICENSE-sadrzaj.md)
+moj_zvuk/                    vlastite snimke i pokusi (nije u gitu)
 alati/zamjenski_zvuk.py      generira vlastite zamjenske zapise u zvuk/
 tests/test_biljeznice.py     provjera: bilježnice se izvode, dopuštene datoteke, licence
 requirements.txt             Python paketi
 ```
 
 Zapisi u `zvuk/` su zamjenski: generira ih `python alati/zamjenski_zvuk.py`. Vlastite snimke
-(WAV, mono ili stereo, 8/16/32 bita, bilo koja frekvencija uzorkovanja) stavite u `zvuk/` i u
-bilježnici promijenite ime datoteke.
+(WAV, mono ili stereo, 8/16/32 bita, bilo koja frekvencija uzorkovanja) stavite u mapu
+`moj_zvuk/`, koja nije u gitu, i u bilježnici ih učitajte s
+`ucitaj("ime.wav", fs=fs, mapa="moj_zvuk")`. U `zvuk/` su samo zapisi s izvorom i licencom u
+`LICENSE-sadrzaj.md`; zapis bez toga ruši test licenci.
 
 ## Provjera
 

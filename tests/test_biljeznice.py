@@ -185,3 +185,16 @@ def test_ucitaj_8bit_stereo_i_48khz(tmp_path, monkeypatch):
     fs, s = ucitaj("mobitel.wav", fs=44100, mapa=tmp_path)
     assert fs == 44100 and s.ndim == 1 and len(s) == 44100
     assert abs(np.max(np.abs(s[1000:-1000])) - 0.5) < 0.01
+
+
+def test_vlastite_snimke_u_moj_zvuk():
+    """Upute za vlastite snimke vode u mapu moj_zvuk/ (nije u gitu), ne u zvuk/: zapis u zvuk/
+    bez izvora i licence u LICENSE-sadrzaj.md ruši test licenci."""
+    assert "moj_zvuk/" in (KORIJEN / ".gitignore").read_text(encoding="utf-8").split()
+    nb = json.loads((KORIJEN / "P08_konvolucija_zvuk.ipynb").read_text(encoding="utf-8"))
+    tekstovi = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "markdown"]
+    tekstovi.append((KORIJEN / "README.md").read_text(encoding="utf-8"))
+    for tekst in tekstovi:
+        # „stavite/spremite … u (mapu) `zvuk/`“ unutar jedne rečenice
+        assert not re.search(r"(stavite|spremite)[^.]*?\bu\s+(mapu\s+)?`zvuk/`", tekst), tekst
+    assert any("moj_zvuk" in t and "snim" in t.lower() for t in tekstovi[:-1])
