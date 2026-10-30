@@ -42,7 +42,8 @@ requirements.txt             Python paketi
 ```
 
 Zapisi u `zvuk/` su zamjenski: generira ih `python alati/zamjenski_zvuk.py`. Vlastite snimke
-(WAV) stavite u `zvuk/` i u bilježnici promijenite ime datoteke.
+(WAV, mono ili stereo, 8/16/32 bita, bilo koja frekvencija uzorkovanja) stavite u `zvuk/` i u
+bilježnici promijenite ime datoteke.
 
 ## Provjera
 
@@ -52,7 +53,15 @@ Zapisi u `zvuk/` su zamjenski: generira ih `python alati/zamjenski_zvuk.py`. Vla
 
 Test izvodi svaku bilježnicu od vrha do dna (bez zvučne kartice i bez interneta), provjerava
 da su u repozitoriju samo dopuštene vrste datoteka i da svaki zvučni zapis ima naveden izvor
-i licencu. Bilježnice se spremaju bez izlaza (*Edit → Clear Outputs of All Cells*).
+i dopuštenu licencu (CC0, CC BY 4.0 ili CC BY-SA 4.0). Bilježnice se spremaju bez izlaza
+(*Edit → Clear Outputs of All Cells*).
+
+Bilježnice bez preglednika izvodite ovim testom, a ne s `jupyter nbconvert --execute`. S
+klizačima (ipywidgets) nbconvert katkad čeka do isteka timeouta (opis u
+`tests/test_biljeznice.py`, funkcija `_klijent`). U JupyterLabu toga nema.
+
+Odziv s drugim vremenom odjeka napravite u zasebnoj mapi, da `zvuk/` ostane nepromijenjen:
+`python alati/zamjenski_zvuk.py moj_zvuk --rt60 2.5` (mapa `moj_zvuk/` nije u gitu).
 
 ## Licence
 

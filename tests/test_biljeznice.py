@@ -14,6 +14,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 KORIJEN = Path(__file__).resolve().parent.parent
@@ -35,22 +36,23 @@ def test_postoji_barem_jedna_biljeznica():
 
 
 def _klijent(nb):
-    """NotebookClient bez nbclientove obrade Output widgeta.
+    """NotebookClient bez nbclientove obrade Output widgeta (``widget_registry`` prazan).
 
-    nbclient sinkronizira stanje Output widgeta (``interact``) slanjem na shell kanal dok
-    čeka odgovor jezgre na istom kanalu; s pyzmq asyncio to katkad „proguta” buđenje, pa
-    ćelija čeka do isteka timeouta (izmjereno: 120 s, jednom i 325 s) iako je jezgra
-    odgovorila odmah. Bez obrade widgeta izlazi funkcije klizača (slika, zvuk, eventualna
-    greška) postaju obični izlazi ćelije, pa ih test i dalje vidi."""
+    nbclient sinkronizira stanje Output widgeta (``interactive``/``interact``) slanjem na
+    shell kanal dok čeka odgovor jezgre na istom kanalu; s pyzmq asyncio to katkad „proguta”
+    buđenje, pa ćelija čeka do isteka timeouta (izmjereno: 8–120 s, jednom 325 s) iako je
+    jezgra odgovorila odmah. Zato se bilježnice izvode ovim testom, a ne s
+    ``jupyter nbconvert --execute``. Bez obrade widgeta izlazi funkcije klizača (slika, zvuk,
+    eventualna greška) postaju obični izlazi ćelije, pa ih test vidi."""
     from nbclient import NotebookClient
 
-    class Klijent(NotebookClient):
-        def reset_execution_trackers(self):
-            super().reset_execution_trackers()
-            self.widget_registry = {}
-
-    return Klijent(nb, timeout=TIMEOUT_CELIJE, kernel_name="python3",
-                   resources={"metadata": {"path": str(KORIJEN)}})
+    klijent = NotebookClient(nb, timeout=TIMEOUT_CELIJE, kernel_name="python3",
+                             resources={"metadata": {"path": str(KORIJEN)}})
+    # nbclient puni widget_registry u __init__ (ne u execute); ako se to promijeni, test pada
+    assert "@jupyter-widgets/output" in getattr(klijent, "widget_registry", {}), \
+        "nbclient više nema widget_registry: provjeriti zaobilaznicu"
+    klijent.widget_registry = {}
+    return klijent
 
 
 @pytest.mark.parametrize("put", BILJEZNICE, ids=lambda p: p.name)
@@ -65,8 +67,14 @@ def test_sve_se_izvode(put):
     _klijent(nb).execute()
     for celija in nb.cells:
         if celija.cell_type == "code":
-            greske = [o for o in celija.get("outputs", []) if o.get("output_type") == "error"]
+            izlazi = celija.get("outputs", [])
+            greske = [o for o in izlazi if o.get("output_type") == "error"]
             assert not greske, (celija.source[:200], greske)
+            if "widgets.interact" in celija.source:
+                # funkcija klizača se izvela: nacrtala sliku i ponudila zvuk
+                podaci = [o.get("data", {}) for o in izlazi]
+                assert any("image/png" in d for d in podaci), celija.source[:200]
+                assert any("<audio" in d.get("text/html", "") for d in podaci), celija.source[:200]
 
 
 @pytest.mark.parametrize("put", BILJEZNICE, ids=lambda p: p.name)
@@ -116,6 +124,10 @@ def _redci_licence() -> list[list[str]]:
     return redci
 
 
+# Licence koje dopuštaju objavu u javnom repozitoriju i u udžbeniku (ne NC ni ND)
+DOPUSTENE_LICENCE = {"CC0", "CC0 1.0", "CC BY 4.0", "CC BY-SA 4.0"}
+
+
 def test_svaki_zapis_ima_licencu():
     zapisi = sorted(p.relative_to(KORIJEN).as_posix() for p in ZVUK.glob("*.wav"))
     assert zapisi, "zvuk/ nema nijednog zapisa"
@@ -123,14 +135,53 @@ def test_svaki_zapis_ima_licencu():
     for z in zapisi:
         assert z in navedeni, f"{z} nije naveden u LICENSE-sadrzaj.md"
         _, izvor, licenca, *_ = navedeni[z]
-        assert izvor and licenca, f"{z}: nedostaje izvor ili licenca"
+        assert izvor, f"{z}: nedostaje izvor"
+        licenca = " ".join(licenca.strip("`* ").split())
+        assert licenca in DOPUSTENE_LICENCE, (
+            f"{z}: licenca „{licenca}” nije među dopuštenima {sorted(DOPUSTENE_LICENCE)}")
 
 
 def test_zamjenski_zvuk_je_svjez(tmp_path):
     """Zapisi u zvuk/ su upravo oni koje generira alati/zamjenski_zvuk.py (vlastiti zvuk)."""
     subprocess.run([sys.executable, str(KORIJEN / "alati" / "zamjenski_zvuk.py"), str(tmp_path)],
                    check=True)
+    from scipy.io import wavfile
+
     novi = sorted(p.name for p in tmp_path.glob("*.wav"))
     assert novi
     for ime in novi:
-        assert (tmp_path / ime).read_bytes() == (ZVUK / ime).read_bytes(), ime
+        fs_novi, novi_uzorci = wavfile.read(tmp_path / ime)
+        fs_zvuk, uzorci = wavfile.read(ZVUK / ime)
+        assert (fs_novi, novi_uzorci.dtype, novi_uzorci.shape) == (fs_zvuk, uzorci.dtype, uzorci.shape), ime
+        # zaokruživanje na int16 smije se razlikovati za 1 na drugom OS-u ili inačici numpyja
+        razlika = np.max(np.abs(novi_uzorci.astype(np.int32) - uzorci.astype(np.int32)))
+        assert razlika <= 1, (ime, razlika)
+
+
+def _ucitaj_iz_biljeznice(monkeypatch):
+    """Funkcija ``ucitaj`` iz bilježnice P08 (ćelija s importima i ćelija s ``def ucitaj``)."""
+    monkeypatch.setenv("MPLBACKEND", "Agg")
+    monkeypatch.chdir(KORIJEN)
+    nb = json.loads((KORIJEN / "P08_konvolucija_zvuk.ipynb").read_text(encoding="utf-8"))
+    kod = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code"]
+    prostor: dict = {"display": lambda *a, **k: None}
+    exec(kod[0], prostor)
+    exec(next(k for k in kod if "def ucitaj" in k), prostor)
+    return prostor["ucitaj"]
+
+
+def test_ucitaj_8bit_stereo_i_48khz(tmp_path, monkeypatch):
+    """Snimka s mobitela: 8-bitni WAV i 48 kHz stereo pretvaraju se u mono −1 … 1 na 44,1 kHz."""
+    from scipy.io import wavfile
+
+    ucitaj = _ucitaj_iz_biljeznice(monkeypatch)
+    wavfile.write(tmp_path / "osam.wav", 44100, np.array([128, 255, 0, 128], dtype=np.uint8))
+    fs, s = ucitaj("osam.wav", fs=44100, mapa=tmp_path)
+    assert fs == 44100
+    assert np.allclose(s, [0, 127 / 128, -1, 0])
+    t = np.arange(48000) / 48000
+    ton = (0.5 * 32767 * np.sin(2 * np.pi * 1000 * t)).astype(np.int16)
+    wavfile.write(tmp_path / "mobitel.wav", 48000, np.column_stack([ton, ton]))
+    fs, s = ucitaj("mobitel.wav", fs=44100, mapa=tmp_path)
+    assert fs == 44100 and s.ndim == 1 and len(s) == 44100
+    assert abs(np.max(np.abs(s[1000:-1000])) - 0.5) < 0.01
