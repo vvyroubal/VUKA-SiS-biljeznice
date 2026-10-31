@@ -198,3 +198,90 @@ def test_vlastite_snimke_u_moj_zvuk():
         # „stavite/spremite … u (mapu) `zvuk/`“ unutar jedne rečenice
         assert not re.search(r"(stavite|spremite)[^.]*?\bu\s+(mapu\s+)?`zvuk/`", tekst), tekst
     assert any("moj_zvuk" in t and "snim" in t.lower() for t in tekstovi[:-1])
+
+
+def _izlazi(nb) -> tuple[str, str]:
+    """(sav ispisani tekst, sav HTML) iz izlaza izvedene bilježnice."""
+    tekst, html = [], []
+    for celija in nb.cells:
+        for o in celija.get("outputs", []):
+            if o.get("output_type") == "stream":
+                tekst.append(o.get("text", ""))
+            html.append(o.get("data", {}).get("text/html", ""))
+    return "".join(tekst), "".join(html)
+
+
+def test_p08_vlastiti_ulaz_i_odziv(tmp_path, monkeypatch):
+    """Vlastite snimke preko P08_ULAZ i P08_ODZIV (kao da ih je nastavnik upisao u postavke):
+    ulaz 48 kHz stereo 16 bita, 20 s s tišinom na početku; odziv 8 bita, 22,05 kHz, s 0,3 s
+    tišine prije praska. Bilježnica se izvodi do kraja, skraćuje ulaz, reže tišinu i rep
+    odziva, preuzorkuje odziv na 48 kHz i nudi zvuk."""
+    import nbformat
+    from scipy.io import wavfile
+
+    rng = np.random.default_rng(1)
+    fs_x = 48000
+    t = np.arange(int(18.5 * fs_x)) / fs_x
+    govor = (0.3 * np.sin(2 * np.pi * 220 * t) * (np.sin(2 * np.pi * 3 * t) > 0)
+             + 0.01 * rng.standard_normal(len(t)))
+    x = np.concatenate([np.zeros(int(1.5 * fs_x)), govor])           # 20 s
+    lijevo = np.round(32767 * x).astype(np.int16)
+    wavfile.write(tmp_path / "govor.wav", fs_x, np.column_stack([lijevo, lijevo // 2]))
+
+    fs_h = 22050
+    n = int(2.0 * fs_h)
+    rep = rng.standard_normal(n) * np.exp(-np.log(1000) * np.arange(n) / fs_h / 0.5)
+    rep[0] = 4.0                                                    # izravni zvuk
+    h = np.concatenate([np.zeros(int(0.3 * fs_h)), rep / 4.0])
+    wavfile.write(tmp_path / "pucanj_dvorana.wav", fs_h,
+                  np.clip(np.round(128 + 127 * h), 0, 255).astype(np.uint8))
+
+    monkeypatch.setenv("P08_ULAZ", str(tmp_path / "govor.wav"))
+    monkeypatch.setenv("P08_ODZIV", str(tmp_path / "pucanj_dvorana.wav"))
+    put = KORIJEN / "P08_konvolucija_zvuk.ipynb"
+    nb = nbformat.read(put, as_version=4)
+    _klijent(nb).execute()
+    for celija in nb.cells:
+        greske = [o for o in celija.get("outputs", []) if o.get("output_type") == "error"]
+        assert not greske, (celija.source[:200], greske)
+    tekst, html = _izlazi(nb)
+    assert "ulaz: odrezano 1,30 s tišine na početku" in tekst, tekst
+    assert "uzeto prvih 15,00 s" in tekst, tekst
+    assert "pucanj_dvorana.wav: preuzorkovano s 22050 Hz na 48000 Hz" in tekst, tekst
+    assert "odziv: odrezano 0,30 s tišine prije izravnog zvuka" in tekst, tekst
+    assert "odziv: rep ispod" in tekst, tekst
+    assert "f_s = 48000 Hz" in tekst and f"N_x = {15 * fs_x} uzoraka" in tekst, tekst
+    assert "<audio" in html
+
+
+def test_p08_greske_i_prijenos(tmp_path, monkeypatch):
+    """Jasne greške za nepostojeću, ne-WAV i tihu datoteku; prijenos gumbom sprema u mapu."""
+    from scipy.io import wavfile
+
+    ucitaj = _ucitaj_iz_biljeznice(monkeypatch)
+    with pytest.raises(FileNotFoundError, match="Nema datoteke"):
+        ucitaj("nema.wav", mapa=tmp_path)
+    (tmp_path / "pjesma.mp3").write_bytes(b"ID3\x03\x00")
+    with pytest.raises(ValueError, match="samo WAV"):
+        ucitaj(str(tmp_path / "pjesma.mp3"))
+    (tmp_path / "krivo.wav").write_bytes(b"ID3\x03\x00" + bytes(100))
+    with pytest.raises(ValueError, match="ne mogu pročitati kao WAV"):
+        ucitaj(str(tmp_path / "krivo.wav"))
+    wavfile.write(tmp_path / "tisina.wav", 44100, np.zeros(4410, dtype=np.int16))
+    with pytest.raises(ValueError, match="tih"):
+        ucitaj(str(tmp_path / "tisina.wav"))
+
+    nb = json.loads((KORIJEN / "P08_konvolucija_zvuk.ipynb").read_text(encoding="utf-8"))
+    kod = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code"]
+    prostor: dict = {"display": lambda *a, **k: None}
+    monkeypatch.delenv("P08_ULAZ", raising=False)
+    monkeypatch.delenv("P08_ODZIV", raising=False)
+    exec(kod[0], prostor)
+    exec(next(k for k in kod if "ODZIV = ODZIV or" in k), prostor)       # postavke
+    exec(next(k for k in kod if "def spremi_prijenos" in k), prostor)
+    assert (prostor["ULAZ"], prostor["ODZIV"]) == ("", "")
+    assert prostor["spremi_prijenos"]((), tmp_path) == ""
+    put = prostor["spremi_prijenos"](({"name": "../snimka.wav", "content": memoryview(b"RIFF")},),
+                                     tmp_path / "moj")
+    assert Path(put) == tmp_path / "moj" / "snimka.wav"
+    assert (tmp_path / "moj" / "snimka.wav").read_bytes() == b"RIFF"
