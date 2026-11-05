@@ -11,9 +11,11 @@ Autor: mr.sc. Vedran Vyroubal
 
 | Bilježnica | Predavanje | Poglavlje udžbenika | Sadržaj |
 |---|---|---|---|
+| `P05_odziv_zeta.ipynb` | P05 | 5. Sustavi prvog i drugog reda | odziv normiranog sustava drugog reda na skok s klizačem za faktor prigušenja ζ; polovi na kružnici i na realnoj osi; režimi prigušenja; vršno vrijeme, nadvišenje, procjena i stvarno vrijeme smirivanja |
 | `P08_konvolucija_zvuk.ipynb` | P08 | 8. Konvolucija i impulsni odziv | konvolucija suhog zvučnog zapisa s impulsnim odzivom prostorije (snimkom pucnja); slušanje, grafovi i klizači za udio odjeka i duljinu odziva; vlastiti ulazni zapis i impulsni odziv (WAV) |
 
-Bilježnice rade bez interneta. Za zvuk trebaju zvučnici ili slušalice.
+Bilježnice rade bez interneta. Za zvuk (P08) trebaju zvučnici ili slušalice; P05 nema
+zvuka.
 
 ## Instalacija
 
@@ -34,6 +36,7 @@ Repozitorij možete preuzeti s `git clone` ili kao ZIP (gumb *Code → Download 
 ## Struktura
 
 ```
+P05_odziv_zeta.ipynb         bilježnica uz predavanje P05
 P08_konvolucija_zvuk.ipynb   bilježnica uz predavanje P08
 zvuk/                        zvučni zapisi (izvor i licenca: LICENSE-sadrzaj.md)
 moj_zvuk/                    vlastite snimke i pokusi (nije u gitu)

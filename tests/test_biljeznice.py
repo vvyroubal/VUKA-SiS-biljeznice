@@ -60,7 +60,8 @@ def test_sve_se_izvode(put):
     """Izvođenje od vrha prema dnu (nbclient) bez greške; IPython.display.Audio ne treba
     zvučnu karticu (zvuk se ugrađuje u izlaz), a klizači (ipywidgets) rade i bez preglednika.
     Greška u funkciji klizača ne ruši ćeliju (ipywidgets je ispiše), pa se traže i izlazi
-    vrste ``error``."""
+    vrste ``error``. Funkcija klizača mora nacrtati sliku, a zvuk ponuditi samo ako ćelija
+    klizača zvuk i pušta (``Audio(``): bilježnica bez zvuka radi i bez zvučnika."""
     import nbformat
 
     nb = nbformat.read(put, as_version=4)
@@ -71,10 +72,12 @@ def test_sve_se_izvode(put):
             greske = [o for o in izlazi if o.get("output_type") == "error"]
             assert not greske, (celija.source[:200], greske)
             if "widgets.interact" in celija.source:
-                # funkcija klizača se izvela: nacrtala sliku i ponudila zvuk
+                # funkcija klizača se izvela: nacrtala sliku (i ponudila zvuk, ako ga pušta)
                 podaci = [o.get("data", {}) for o in izlazi]
                 assert any("image/png" in d for d in podaci), celija.source[:200]
-                assert any("<audio" in d.get("text/html", "") for d in podaci), celija.source[:200]
+                if "Audio(" in celija.source:
+                    assert any("<audio" in d.get("text/html", "") for d in podaci), \
+                        celija.source[:200]
 
 
 @pytest.mark.parametrize("put", BILJEZNICE, ids=lambda p: p.name)
