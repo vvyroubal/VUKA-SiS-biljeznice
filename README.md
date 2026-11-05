@@ -15,9 +15,10 @@ Autor: mr.sc. Vedran Vyroubal
 | `P08_konvolucija_zvuk.ipynb` | P08 | 8. Konvolucija i impulsni odziv | konvolucija suhog zvučnog zapisa s impulsnim odzivom prostorije (snimkom pucnja); slušanje, grafovi i klizači za udio odjeka i duljinu odziva; vlastiti ulazni zapis i impulsni odziv (WAV) |
 | `P09_harmonici_zvuk.ipynb` | P09 | 9. Fourierov red i Fourierova transformacija | zbrajanje harmonika pravokutnog, pilastog i trokutnog vala (f₀ = 220 Hz) s klizačem za broj harmonika N; djelomični zbroj i spektar (linije b_k); slušanje djelomičnih zbrojeva; Gibbsova pojava uz skok; isti amplitudni spektar s drukčijim fazama |
 | `P12_aliasing_zvuk.ipynb` | P12 | 12. Uzorkovanje i diskretni signali | čujni aliasing: ton uzorkovan preniskom frekvencijom uzorkovanja, s klizačima za frekvenciju tona f i frekvenciju uzorkovanja f_s; prividna frekvencija i graf savijanja; klizni ton koji iznad f_s/2 „pada natrag”; isto uzorkovanje nakon anti-aliasing filtra za usporedbu |
+| `P13_spektar_snimke.ipynb` | P13 | 13. Fourierova transformacija diskretnih signala | jednostrani amplitudni spektar snimke (zadana sintetička: dvije gotovo jednako ugođene žice s harmonicima, tiho brujanje i šum; ili vlastiti WAV) s klizačima za duljinu odsječka N, prozor (pravokutni ili Hannov) i nadopunu nulama; frekvencijska rezolucija, curenje spektra i bočni režnjevi prozora; spektrogram |
 
-Bilježnice rade bez interneta. Za zvuk (P08, P09, P12) trebaju zvučnici ili slušalice; P05
-nema zvuka. Zvukove P09 i P12 bilježnice same sintetiziraju. Brojevi uz klizače pišu se s decimalnom točkom (ograničenje ipywidgetsa), a u tekstu,
+Bilježnice rade bez interneta. Za zvuk (P08, P09, P12, P13) trebaju zvučnici ili slušalice; P05
+nema zvuka. Zvukove P09 i P12 i zadanu snimku P13 bilježnice same sintetiziraju. Brojevi uz klizače pišu se s decimalnom točkom (ograničenje ipywidgetsa), a u tekstu,
 na grafovima i u ispisu s decimalnim zarezom.
 
 ## Instalacija
@@ -43,6 +44,7 @@ P05_odziv_zeta.ipynb         bilježnica uz predavanje P05
 P08_konvolucija_zvuk.ipynb   bilježnica uz predavanje P08
 P09_harmonici_zvuk.ipynb     bilježnica uz predavanje P09
 P12_aliasing_zvuk.ipynb      bilježnica uz predavanje P12
+P13_spektar_snimke.ipynb     bilježnica uz predavanje P13
 zvuk/                        zvučni zapisi (izvor i licenca: LICENSE-sadrzaj.md)
 moj_zvuk/                    vlastite snimke i pokusi (nije u gitu)
 alati/zamjenski_zvuk.py      generira vlastite zamjenske zapise u zvuk/
@@ -53,7 +55,7 @@ requirements.txt             Python paketi
 Zapisi u `zvuk/` su zamjenski: generira ih `python alati/zamjenski_zvuk.py`. U `zvuk/` su
 samo zapisi s izvorom i licencom u `LICENSE-sadrzaj.md`; zapis bez toga ruši test licenci.
 
-## Vlastiti zapisi (P08)
+## Vlastiti zapisi (P08, P13)
 
 U bilježnici P08 umjesto zadanih zapisa možete upotrijebiti vlastiti ulazni zapis (govor,
 glazba) i vlastiti impulsni odziv (prasak balona ili pljesak u dvorani):
@@ -79,8 +81,14 @@ Vlastita snimka smije u repozitorij (u mapu sa zapisima, s izvorom i licencom u
 `LICENSE-sadrzaj.md`) samo pod licencom koja dopušta objavu (CC0, CC BY 4.0 ili
 CC BY-SA 4.0); inače ostaje u `moj_zvuk/`.
 
-Za automatske testove putanje se mogu zadati i varijablama okoline `P08_ULAZ` i
-`P08_ODZIV` (vrijede kad je polje u postavkama prazno).
+U bilježnici P13 vlastitu snimku (zviždanje, pjevani samoglasnik, žica gitare, zujanje
+ventilatora) zadajte u postavkama kao `SNIMKA = "moj_zvuk/zvizduk.wav"` ili gumbom za prijenos.
+Bilježnica je istom funkcijom učita, preuzorkuje na frekvenciju uzorkovanja analize `FS`
+(zadano 16 kHz), odreže tišinu na početku, skrati je na `MAX_SNIMKA_S` (zadano 20 s) i normira
+vrh na 0,9. Ako je snimka prekratka za najveći N, klizač nudi samo N koji stanu u snimku.
+
+Za automatske testove putanje se mogu zadati i varijablama okoline `P08_ULAZ`,
+`P08_ODZIV` i `P13_SNIMKA` (vrijede kad je polje u postavkama prazno).
 
 ## Provjera
 

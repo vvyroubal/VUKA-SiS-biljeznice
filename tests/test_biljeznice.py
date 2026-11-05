@@ -30,7 +30,7 @@ DOPUSTENA_IMENA = {".gitignore"}
 NASTAVNICKA_IMENA = re.compile(r"rjesenj|rješenj|nastavni|recenz|kviz|kostur", re.I)
 # Bilježnice sa zvukom: njihova funkcija klizača mora ponuditi zvuk (<audio>). Ostale (npr.
 # P05_odziv_zeta) zvuka nemaju i rade bez zvučnika. Nova bilježnica sa zvukom dodaje se ovdje.
-ZVUCNE = {"P08_konvolucija_zvuk", "P09_harmonici_zvuk", "P12_aliasing_zvuk"}
+ZVUCNE = {"P08_konvolucija_zvuk", "P09_harmonici_zvuk", "P12_aliasing_zvuk", "P13_spektar_snimke"}
 MREZA = re.compile(r"https?://|urllib|requests|urlretrieve|wget|curl|socket", re.I)
 
 
@@ -166,11 +166,15 @@ def test_zamjenski_zvuk_je_svjez(tmp_path):
         assert razlika <= 1, (ime, razlika)
 
 
-def _ucitaj_iz_biljeznice(monkeypatch):
-    """Funkcija ``ucitaj`` iz bilježnice P08 (ćelija s importima i ćelija s ``def ucitaj``)."""
+# Bilježnice koje učitavaju vlastiti WAV istom funkcijom ``ucitaj`` (P13 je preuzela iz P08)
+VLASTITI_WAV = ("P08_konvolucija_zvuk", "P13_spektar_snimke")
+
+
+def _ucitaj_iz_biljeznice(monkeypatch, ime="P08_konvolucija_zvuk"):
+    """Funkcija ``ucitaj`` iz bilježnice (ćelija s importima i ćelija s ``def ucitaj``)."""
     monkeypatch.setenv("MPLBACKEND", "Agg")
     monkeypatch.chdir(KORIJEN)
-    nb = json.loads((KORIJEN / "P08_konvolucija_zvuk.ipynb").read_text(encoding="utf-8"))
+    nb = json.loads((KORIJEN / f"{ime}.ipynb").read_text(encoding="utf-8"))
     kod = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code"]
     prostor: dict = {"display": lambda *a, **k: None}
     exec(kod[0], prostor)
@@ -178,11 +182,12 @@ def _ucitaj_iz_biljeznice(monkeypatch):
     return prostor["ucitaj"]
 
 
-def test_ucitaj_8bit_stereo_i_48khz(tmp_path, monkeypatch):
+@pytest.mark.parametrize("ime", VLASTITI_WAV)
+def test_ucitaj_8bit_stereo_i_48khz(tmp_path, monkeypatch, ime):
     """Snimka s mobitela: 8-bitni WAV i 48 kHz stereo pretvaraju se u mono −1 … 1 na 44,1 kHz."""
     from scipy.io import wavfile
 
-    ucitaj = _ucitaj_iz_biljeznice(monkeypatch)
+    ucitaj = _ucitaj_iz_biljeznice(monkeypatch, ime)
     wavfile.write(tmp_path / "osam.wav", 44100, np.array([128, 255, 0, 128], dtype=np.uint8))
     fs, s = ucitaj("osam.wav", fs=44100, mapa=tmp_path)
     assert fs == 44100
@@ -195,11 +200,12 @@ def test_ucitaj_8bit_stereo_i_48khz(tmp_path, monkeypatch):
     assert abs(np.max(np.abs(s[1000:-1000])) - 0.5) < 0.01
 
 
-def test_vlastite_snimke_u_moj_zvuk():
+@pytest.mark.parametrize("ime", VLASTITI_WAV)
+def test_vlastite_snimke_u_moj_zvuk(ime):
     """Upute za vlastite snimke vode u mapu moj_zvuk/ (nije u gitu), ne u zvuk/: zapis u zvuk/
     bez izvora i licence u LICENSE-sadrzaj.md ruši test licenci."""
     assert "moj_zvuk/" in (KORIJEN / ".gitignore").read_text(encoding="utf-8").split()
-    nb = json.loads((KORIJEN / "P08_konvolucija_zvuk.ipynb").read_text(encoding="utf-8"))
+    nb = json.loads((KORIJEN / f"{ime}.ipynb").read_text(encoding="utf-8"))
     tekstovi = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "markdown"]
     tekstovi.append((KORIJEN / "README.md").read_text(encoding="utf-8"))
     for tekst in tekstovi:
@@ -293,3 +299,72 @@ def test_p08_greske_i_prijenos(tmp_path, monkeypatch):
                                      tmp_path / "moj")
     assert Path(put) == tmp_path / "moj" / "snimka.wav"
     assert (tmp_path / "moj" / "snimka.wav").read_bytes() == b"RIFF"
+
+
+def test_p13_vlastita_snimka(tmp_path, monkeypatch):
+    """Vlastita snimka preko P13_SNIMKA (kao da ju je student upisao u postavke): stereo,
+    16 bita, 44,1 kHz, 0,6 s tišine pa 2 s tona od 330 Hz s harmonikom. Bilježnica se izvodi
+    do kraja, preuzorkuje snimku na 16 kHz, reže tišinu, nudi samo N koji stanu u snimku i
+    zvuk, a najviši vrh je na tonu snimke."""
+    import nbformat
+    from scipy.io import wavfile
+
+    fs = 44100
+    t = np.arange(2 * fs) / fs
+    rng = np.random.default_rng(2)
+    ton = 0.4 * np.sin(2 * np.pi * 330 * t) + 0.1 * np.sin(2 * np.pi * 660 * t)
+    x = np.concatenate([0.001 * rng.standard_normal(int(0.6 * fs)), ton])
+    lijevo = np.round(32767 * x).astype(np.int16)
+    wavfile.write(tmp_path / "ton.wav", fs, np.column_stack([lijevo, lijevo // 2]))
+    monkeypatch.setenv("P13_SNIMKA", str(tmp_path / "ton.wav"))
+    nb = nbformat.read(KORIJEN / "P13_spektar_snimke.ipynb", as_version=4)
+    _klijent(nb).execute()
+    for celija in nb.cells:
+        greske = [o for o in celija.get("outputs", []) if o.get("output_type") == "error"]
+        assert not greske, (celija.source[:200], greske)
+    tekst, html = _izlazi(nb)
+    assert "ton.wav: preuzorkovano s 44100 Hz na 16000 Hz" in tekst, tekst
+    assert re.search(r"snimka: odrezano 0,6\d s tišine na početku", tekst), tekst
+    assert "snimka: vrh normiran na 0,9" in tekst, tekst
+    assert "ton.wav: f_s = 16000 Hz" in tekst and "klizač N od 256 do 16384" in tekst, tekst
+    assert "za N = 32768 snimka bi trebala trajati barem" in tekst, tekst
+    f_vrh = float(re.search(r"najviši vrh do \d+ Hz: f = ([\d,]+) Hz", tekst).group(1)
+                  .replace(",", "."))
+    assert abs(f_vrh - 330) < 16000 / 2048, f_vrh
+    assert "<audio" in html
+
+
+def _p13_funkcije(monkeypatch) -> dict:
+    """Prostor imena bilježnice P13 nakon ćelije s importima, postavki i ćelija s funkcijama
+    (``def opis`` i ``def ucitaj``), bez okoline P13_SNIMKA."""
+    monkeypatch.setenv("MPLBACKEND", "Agg")
+    monkeypatch.chdir(KORIJEN)
+    monkeypatch.delenv("P13_SNIMKA", raising=False)
+    nb = json.loads((KORIJEN / "P13_spektar_snimke.ipynb").read_text(encoding="utf-8"))
+    kod = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code"]
+    prostor: dict = {"display": lambda *a, **k: None}
+    exec(kod[0], prostor)
+    for oznaka in ("N_POCETNI =", "def opis", "def ucitaj"):
+        exec(next(k for k in kod if oznaka in k), prostor)
+    return prostor
+
+
+def test_p13_greske(tmp_path, monkeypatch):
+    """Jasne greške za nepostojeću, ne-WAV, tihu i prekratku snimku; bez vlastite snimke
+    postavke ostaju na zadanoj sintetičkoj."""
+    from scipy.io import wavfile
+
+    p = _p13_funkcije(monkeypatch)
+    assert p["SNIMKA"] == ""
+    with pytest.raises(FileNotFoundError, match="Nema datoteke"):
+        p["ucitaj"]("nema.wav", mapa=tmp_path)
+    (tmp_path / "pjesma.mp3").write_bytes(b"ID3\x03\x00")
+    with pytest.raises(ValueError, match="samo WAV"):
+        p["ucitaj"](str(tmp_path / "pjesma.mp3"))
+    wavfile.write(tmp_path / "tisina.wav", 44100, np.zeros(4410, dtype=np.int16))
+    with pytest.raises(ValueError, match="tih"):
+        p["ucitaj"](str(tmp_path / "tisina.wav"))
+    kratka = np.ones(100)
+    pocetak = p["pocetak_odsjecka"](len(kratka))
+    with pytest.raises(ValueError, match="prekratka"):
+        p["opis_snimke"](kratka, "kratka.wav", pocetak, p["moguci_n"](len(kratka), pocetak))
