@@ -326,7 +326,8 @@ def test_p13_vlastita_snimka(tmp_path, monkeypatch):
     assert "ton.wav: preuzorkovano s 44100 Hz na 16000 Hz" in tekst, tekst
     assert re.search(r"snimka: odrezano 0,6\d s tišine na početku", tekst), tekst
     assert "snimka: vrh normiran na 0,9" in tekst, tekst
-    assert "ton.wav: f_s = 16000 Hz" in tekst and "klizač N od 256 do 16384" in tekst, tekst
+    assert "ton.wav: izvorno f_s = 44100 Hz, analiza uz f_s = 16000 Hz" in tekst, tekst
+    assert "klizač N od 256 do 16384" in tekst, tekst
     assert "za N = 32768 snimka bi trebala trajati barem" in tekst, tekst
     f_vrh = float(re.search(r"najviši vrh do \d+ Hz: f = ([\d,]+) Hz", tekst).group(1)
                   .replace(",", "."))
@@ -368,3 +369,31 @@ def test_p13_greske(tmp_path, monkeypatch):
     pocetak = p["pocetak_odsjecka"](len(kratka))
     with pytest.raises(ValueError, match="prekratka"):
         p["opis_snimke"](kratka, "kratka.wav", pocetak, p["moguci_n"](len(kratka), pocetak))
+
+
+def _vrhovi_zica(p: dict, snimka, N: int, prozor: str) -> int:
+    """Broj vrhova jednostranog spektra (nadopuna ×16) oko osnovnih tonova dviju žica zadane
+    snimke P13 viših od pola amplitude osnovnog tona prve žice."""
+    pocetak = p["pocetak_odsjecka"](len(snimka))
+    f, A = p["spektar"](snimka[pocetak:pocetak + N], prozor, 16)
+    sredina = p["F0"] + p["RASTIMANOST"] / 2
+    m = np.abs(f - sredina) <= 3 * p["RASTIMANOST"]
+    a = A[m]
+    prag = 0.5 * p["HARMONICI"][0]
+    return int(sum(1 for i in range(1, len(a) - 1)
+                   if a[i] > a[i - 1] and a[i] >= a[i + 1] and a[i] > prag))
+
+
+def test_p13_razlucivanje_zadane_snimke(monkeypatch):
+    """Prikaz razlučivanja u odjeljcima 4 i 5 bilježnice P13 ovisi o zadanoj snimci (SJEME,
+    F0, RASTIMANOST, HARMONICI): osnovni tonovi dviju žica uz pravokutni prozor daju jedan vrh
+    uz zadani N = 2048, a dva od N = 4096; uz Hannov prozor jedan vrh i uz N = 4096, a dva od
+    N = 8192. Promjena snimke koja to pokvari ruši ovaj test."""
+    p = _p13_funkcije(monkeypatch)
+    snimka = p["sinteza"]()
+    ocekivano = {("pravokutni", 2048): 1, ("pravokutni", 4096): 2, ("pravokutni", 8192): 2,
+                 ("pravokutni", 16384): 2, ("Hannov", 2048): 1, ("Hannov", 4096): 1,
+                 ("Hannov", 8192): 2, ("Hannov", 16384): 2}
+    dobiveno = {k: _vrhovi_zica(p, snimka, N, k[0]) for k in ocekivano for N in [k[1]]}
+    assert dobiveno == ocekivano, dobiveno
+    assert p["N_POCETNI"] == 2048
