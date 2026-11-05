@@ -15,7 +15,8 @@ Autor: mr.sc. Vedran Vyroubal
 | `P08_konvolucija_zvuk.ipynb` | P08 | 8. Konvolucija i impulsni odziv | konvolucija suhog zvučnog zapisa s impulsnim odzivom prostorije (snimkom pucnja); slušanje, grafovi i klizači za udio odjeka i duljinu odziva; vlastiti ulazni zapis i impulsni odziv (WAV) |
 
 Bilježnice rade bez interneta. Za zvuk (P08) trebaju zvučnici ili slušalice; P05 nema
-zvuka.
+zvuka. Brojevi uz klizače pišu se s decimalnom točkom (ograničenje ipywidgetsa), a u tekstu,
+na grafovima i u ispisu s decimalnim zarezom.
 
 ## Instalacija
 

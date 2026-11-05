@@ -28,11 +28,16 @@ DOPUSTENA_IMENA = {".gitignore"}
 # Nastavnički sadržaj (rješenja vježbi, kviz s očekivanim vrijednostima, recenzentske
 # inačice) ne smije u javni repozitorij ni kao dopuštena vrsta datoteke (npr. .py).
 NASTAVNICKA_IMENA = re.compile(r"rjesenj|rješenj|nastavni|recenz|kviz|kostur", re.I)
+# Bilježnice sa zvukom: njihova funkcija klizača mora ponuditi zvuk (<audio>). Ostale (npr.
+# P05_odziv_zeta) zvuka nemaju i rade bez zvučnika. Nova bilježnica sa zvukom dodaje se ovdje.
+ZVUCNE = {"P08_konvolucija_zvuk"}
 MREZA = re.compile(r"https?://|urllib|requests|urlretrieve|wget|curl|socket", re.I)
 
 
 def test_postoji_barem_jedna_biljeznica():
     assert BILJEZNICE, "u korijenu repozitorija nema nijedne .ipynb"
+    # popis zvučnih bilježnica ne zastarijeva: svaka postoji
+    assert ZVUCNE <= {p.stem for p in BILJEZNICE}, ZVUCNE
 
 
 def _klijent(nb):
@@ -60,8 +65,8 @@ def test_sve_se_izvode(put):
     """Izvođenje od vrha prema dnu (nbclient) bez greške; IPython.display.Audio ne treba
     zvučnu karticu (zvuk se ugrađuje u izlaz), a klizači (ipywidgets) rade i bez preglednika.
     Greška u funkciji klizača ne ruši ćeliju (ipywidgets je ispiše), pa se traže i izlazi
-    vrste ``error``. Funkcija klizača mora nacrtati sliku, a zvuk ponuditi samo ako ćelija
-    klizača zvuk i pušta (``Audio(``): bilježnica bez zvuka radi i bez zvučnika."""
+    vrste ``error``. Funkcija klizača mora nacrtati sliku, a u bilježnicama sa zvukom
+    (``ZVUCNE``) i ponuditi zvuk; bilježnica bez zvuka radi i bez zvučnika."""
     import nbformat
 
     nb = nbformat.read(put, as_version=4)
@@ -72,10 +77,10 @@ def test_sve_se_izvode(put):
             greske = [o for o in izlazi if o.get("output_type") == "error"]
             assert not greske, (celija.source[:200], greske)
             if "widgets.interact" in celija.source:
-                # funkcija klizača se izvela: nacrtala sliku (i ponudila zvuk, ako ga pušta)
+                # funkcija klizača se izvela: nacrtala sliku (i ponudila zvuk, ako je zvučna)
                 podaci = [o.get("data", {}) for o in izlazi]
                 assert any("image/png" in d for d in podaci), celija.source[:200]
-                if "Audio(" in celija.source:
+                if put.stem in ZVUCNE:
                     assert any("<audio" in d.get("text/html", "") for d in podaci), \
                         celija.source[:200]
 
