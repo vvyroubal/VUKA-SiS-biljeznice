@@ -30,7 +30,7 @@ DOPUSTENA_IMENA = {".gitignore"}
 NASTAVNICKA_IMENA = re.compile(r"rjesenj|rješenj|nastavni|recenz|kviz|kostur", re.I)
 # Bilježnice sa zvukom: njihova funkcija klizača mora ponuditi zvuk (<audio>). Ostale (npr.
 # P05_odziv_zeta) zvuka nemaju i rade bez zvučnika. Nova bilježnica sa zvukom dodaje se ovdje.
-ZVUCNE = {"P08_konvolucija_zvuk"}
+ZVUCNE = {"P08_konvolucija_zvuk", "P09_harmonici_zvuk"}
 MREZA = re.compile(r"https?://|urllib|requests|urlretrieve|wget|curl|socket", re.I)
 
 
