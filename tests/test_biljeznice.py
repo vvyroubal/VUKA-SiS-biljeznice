@@ -30,7 +30,8 @@ DOPUSTENA_IMENA = {".gitignore"}
 NASTAVNICKA_IMENA = re.compile(r"rjesenj|rješenj|nastavni|recenz|kviz|kostur", re.I)
 # Bilježnice sa zvukom: njihova funkcija klizača mora ponuditi zvuk (<audio>). Ostale (npr.
 # P05_odziv_zeta) zvuka nemaju i rade bez zvučnika. Nova bilježnica sa zvukom dodaje se ovdje.
-ZVUCNE = {"P08_konvolucija_zvuk", "P09_harmonici_zvuk", "P12_aliasing_zvuk", "P13_spektar_snimke"}
+ZVUCNE = {"P08_konvolucija_zvuk", "P09_harmonici_zvuk", "P12_aliasing_zvuk", "P13_spektar_snimke",
+          "P15_digitalni_filtar_zvuk"}
 MREZA = re.compile(r"https?://|urllib|requests|urlretrieve|wget|curl|socket", re.I)
 
 
@@ -166,8 +167,9 @@ def test_zamjenski_zvuk_je_svjez(tmp_path):
         assert razlika <= 1, (ime, razlika)
 
 
-# Bilježnice koje učitavaju vlastiti WAV istom funkcijom ``ucitaj`` (P13 je preuzela iz P08)
-VLASTITI_WAV = ("P08_konvolucija_zvuk", "P13_spektar_snimke")
+# Bilježnice koje učitavaju vlastiti WAV istom funkcijom ``ucitaj`` (P13 i P15 su je preuzele
+# iz P08)
+VLASTITI_WAV = ("P08_konvolucija_zvuk", "P13_spektar_snimke", "P15_digitalni_filtar_zvuk")
 
 
 def _ucitaj_iz_biljeznice(monkeypatch, ime="P08_konvolucija_zvuk"):
@@ -397,3 +399,90 @@ def test_p13_razlucivanje_zadane_snimke(monkeypatch):
     dobiveno = {k: _vrhovi_zica(p, snimka, N, k[0]) for k in ocekivano for N in [k[1]]}
     assert dobiveno == ocekivano, dobiveno
     assert p["N_POCETNI"] == 2048
+
+
+def test_p15_vlastita_snimka(tmp_path, monkeypatch):
+    """Vlastiti zapis preko P15_SNIMKA (kao da ga je student upisao u postavke): stereo,
+    16 bita, 44,1 kHz, 0,5 s tišine pa 2 s tona od 300 Hz uz šum i pisak od 3 kHz. Bilježnica
+    se izvodi do kraja, preuzorkuje zapis na 16 kHz, reže tišinu, normira vrh i nudi zvuk prije
+    i poslije filtra; izlaz pomičnog prosjeka s nulom na 3 kHz nema piska."""
+    import nbformat
+    from scipy.io import wavfile
+
+    fs = 44100
+    t = np.arange(2 * fs) / fs
+    rng = np.random.default_rng(3)
+    x = (0.4 * np.sin(2 * np.pi * 300 * t) + 0.05 * np.sin(2 * np.pi * 3000 * t)
+         + 0.03 * rng.standard_normal(len(t)))
+    x = np.concatenate([0.001 * rng.standard_normal(int(0.5 * fs)), x])
+    lijevo = np.round(32767 * x).astype(np.int16)
+    wavfile.write(tmp_path / "govor.wav", fs, np.column_stack([lijevo, lijevo // 2]))
+    monkeypatch.setenv("P15_SNIMKA", str(tmp_path / "govor.wav"))
+    nb = nbformat.read(KORIJEN / "P15_digitalni_filtar_zvuk.ipynb", as_version=4)
+    # pomični prosjek s M = 16 ima nulu na 3 kHz (3 · 16000/16): pisak u izlazu nestane
+    nb.cells.append(nbformat.v4.new_code_cell(
+        "izlaz = filtriraj(zapis, *model('pomični prosjek', 1000, 16))\n"
+        "f, S_iz = spektar_db(izlaz)\n"
+        "i = int(np.argmin(np.abs(f - 3000)))\n"
+        "print('PISAK', round(S_ulaz[i] - S_iz[i]))"))
+    _klijent(nb).execute()
+    for celija in nb.cells:
+        greske = [o for o in celija.get("outputs", []) if o.get("output_type") == "error"]
+        assert not greske, (celija.source[:200], greske)
+    tekst, html = _izlazi(nb)
+    assert "govor.wav: preuzorkovano s 44100 Hz na 16000 Hz" in tekst, tekst
+    assert re.search(r"snimka: odrezano 0,5\d s tišine na početku", tekst), tekst
+    assert "snimka: vrh normiran na 0,9" in tekst, tekst
+    assert "govor.wav: izvorno f_s = 44100 Hz, filtrira se uz f_s = 16000 Hz" in tekst, tekst
+    assert int(re.search(r"PISAK (-?\d+)", tekst).group(1)) > 40, tekst
+    assert html.count("<audio") >= 3, html.count("<audio")
+
+
+def _p15_funkcije(monkeypatch) -> dict:
+    """Prostor imena bilježnice P15 nakon ćelije s importima, postavki i ćelija s funkcijama
+    (``def opis`` i ``def ucitaj``), bez okoline P15_SNIMKA."""
+    monkeypatch.setenv("MPLBACKEND", "Agg")
+    monkeypatch.chdir(KORIJEN)
+    monkeypatch.delenv("P15_SNIMKA", raising=False)
+    nb = json.loads((KORIJEN / "P15_digitalni_filtar_zvuk.ipynb").read_text(encoding="utf-8"))
+    kod = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code"]
+    prostor: dict = {"display": lambda *a, **k: None}
+    exec(kod[0], prostor)
+    for oznaka in ("F_C_POCETNA =", "def opis", "def ucitaj"):
+        exec(next(k for k in kod if oznaka in k), prostor)
+    return prostor
+
+
+def test_p15_greske(tmp_path, monkeypatch):
+    """Jasne greške za nepostojeći, ne-WAV, tihi i prekratki zapis i nepoznat filtar; bez
+    vlastitog zapisa postavke ostaju na zadanom sintetičkom."""
+    from scipy.io import wavfile
+
+    p = _p15_funkcije(monkeypatch)
+    assert p["SNIMKA"] == ""
+    with pytest.raises(FileNotFoundError, match="Nema datoteke"):
+        p["ucitaj"]("nema.wav", mapa=tmp_path)
+    (tmp_path / "pjesma.mp3").write_bytes(b"ID3\x03\x00")
+    with pytest.raises(ValueError, match="samo WAV"):
+        p["ucitaj"](str(tmp_path / "pjesma.mp3"))
+    wavfile.write(tmp_path / "tisina.wav", 44100, np.zeros(4410, dtype=np.int16))
+    with pytest.raises(ValueError, match="tih"):
+        p["ucitaj"](str(tmp_path / "tisina.wav"))
+    with pytest.raises(ValueError, match="prekratak"):
+        p["opis_snimke"](np.ones(1000), "kratak.wav")
+    with pytest.raises(ValueError, match="nepoznat filtar"):
+        p["model"]("Butterworth", 1000, 4)
+
+
+def test_p15_pisak_i_nule(monkeypatch):
+    """Zadani zapis P15: pisak leži na nuli pomičnog prosjeka za M = f_s/F_PISAK i njegove
+    višekratnike s klizača, a ne za zadani M; uz zadani M i f_c svi filtri pisak samo
+    oslabe. Promjena zapisa ili klizača koja to pokvari ruši ovaj test."""
+    p = _p15_funkcije(monkeypatch)
+    nule = [M for M in range(1, p["M_NAJVECI"] + 1)
+            if abs(p["odziv"](*p["fir"](M), p["F_PISAK"])) < 1e-9]
+    assert nule == [8, 16, 24], nule
+    assert p["M_POCETNI"] not in nule
+    for filtar in p["FILTRI"]:
+        H = abs(p["odziv"](*p["model"](filtar, p["F_C_POCETNA"], p["M_POCETNI"]), p["F_PISAK"]))
+        assert 0.3 < H < 0.8, (filtar, H)

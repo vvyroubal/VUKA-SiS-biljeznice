@@ -16,9 +16,11 @@ Autor: mr.sc. Vedran Vyroubal
 | `P09_harmonici_zvuk.ipynb` | P09 | 9. Fourierov red i Fourierova transformacija | zbrajanje harmonika pravokutnog, pilastog i trokutnog vala (f₀ = 220 Hz) s klizačem za broj harmonika N; djelomični zbroj i spektar (linije b_k); slušanje djelomičnih zbrojeva; Gibbsova pojava uz skok; isti amplitudni spektar s drukčijim fazama |
 | `P12_aliasing_zvuk.ipynb` | P12 | 12. Uzorkovanje i diskretni signali | čujni aliasing: ton uzorkovan preniskom frekvencijom uzorkovanja, s klizačima za frekvenciju tona f i frekvenciju uzorkovanja f_s; prividna frekvencija i graf savijanja; klizni ton koji iznad f_s/2 „pada natrag”; isto uzorkovanje nakon anti-aliasing filtra za usporedbu |
 | `P13_spektar_snimke.ipynb` | P13 | 13. Fourierova transformacija diskretnih signala | jednostrani amplitudni spektar snimke (zadana sintetička: dvije gotovo jednako ugođene žice s harmonicima, tiho brujanje i šum; ili vlastiti WAV) s klizačima za duljinu odsječka N, prozor (pravokutni ili Hannov) i nadopunu nulama; frekvencijska rezolucija, curenje spektra i bočni režnjevi prozora; spektrogram |
+| `P15_digitalni_filtar_zvuk.ipynb` | P15 | 14. z-transformacija; 15. Prijenosna funkcija diskretnog sustava | digitalni filtar na zvuku (zadani sintetički zapis: melodija, šum i pisak; ili vlastiti WAV): pomični prosjek duljine M (FIR) i IIR filtar prvog reda iz RC kruga s τ_f i T_s = 1/f_s, metodama Euler, ZOH i Tustin, s klizačima za f_c i M; nule i polovi u z-ravnini; modul frekvencijskog odziva u hercima; savijanje frekvencije i predizobličenje; slušanje prije i poslije filtra |
 
-Bilježnice rade bez interneta. Za zvuk (P08, P09, P12, P13) trebaju zvučnici ili slušalice; P05
-nema zvuka. Zvukove P09 i P12 i zadanu snimku P13 bilježnice same sintetiziraju. Brojevi uz klizače pišu se s decimalnom točkom (ograničenje ipywidgetsa), a u tekstu,
+Bilježnice rade bez interneta. Za zvuk (P08, P09, P12, P13, P15) trebaju zvučnici ili
+slušalice; P05 nema zvuka. Zvukove P09 i P12 i zadane zapise P13 i P15 bilježnice same
+sintetiziraju. Brojevi uz klizače pišu se s decimalnom točkom (ograničenje ipywidgetsa), a u tekstu,
 na grafovima i u ispisu s decimalnim zarezom.
 
 ## Instalacija
@@ -45,6 +47,7 @@ P08_konvolucija_zvuk.ipynb   bilježnica uz predavanje P08
 P09_harmonici_zvuk.ipynb     bilježnica uz predavanje P09
 P12_aliasing_zvuk.ipynb      bilježnica uz predavanje P12
 P13_spektar_snimke.ipynb     bilježnica uz predavanje P13
+P15_digitalni_filtar_zvuk.ipynb  bilježnica uz predavanje P15
 zvuk/                        zvučni zapisi (izvor i licenca: LICENSE-sadrzaj.md)
 moj_zvuk/                    vlastite snimke i pokusi (nije u gitu)
 alati/zamjenski_zvuk.py      generira vlastite zamjenske zapise u zvuk/
@@ -55,7 +58,7 @@ requirements.txt             Python paketi
 Zapisi u `zvuk/` su zamjenski: generira ih `python alati/zamjenski_zvuk.py`. U `zvuk/` su
 samo zapisi s izvorom i licencom u `LICENSE-sadrzaj.md`; zapis bez toga ruši test licenci.
 
-## Vlastiti zapisi (P08, P13)
+## Vlastiti zapisi (P08, P13, P15)
 
 U bilježnici P08 umjesto zadanih zapisa možete upotrijebiti vlastiti ulazni zapis (govor,
 glazba) i vlastiti impulsni odziv (prasak balona ili pljesak u dvorani):
@@ -87,8 +90,13 @@ Bilježnica je istom funkcijom učita, preuzorkuje na frekvenciju uzorkovanja an
 (zadano 16 kHz), odreže tišinu na početku, skrati je na `MAX_SNIMKA_S` (zadano 20 s) i normira
 vrh na 0,9. Ako je snimka prekratka za najveći N, klizač nudi samo N koji stanu u snimku.
 
+U bilježnici P15 vlastiti zapis (govor ili glazba uz šum ventilatora) zadajte isto, kao
+`SNIMKA = "moj_zvuk/govor_ventilator.wav"` ili gumbom za prijenos. Bilježnica ga pripremi istom
+funkcijom (frekvencija uzorkovanja `FS` zadano 16 kHz, najviše `MAX_SNIMKA_S` = 10 s) i
+filtrira odabranim filtrom.
+
 Za automatske testove putanje se mogu zadati i varijablama okoline `P08_ULAZ`,
-`P08_ODZIV` i `P13_SNIMKA` (vrijede kad je polje u postavkama prazno).
+`P08_ODZIV`, `P13_SNIMKA` i `P15_SNIMKA` (vrijede kad je polje u postavkama prazno).
 
 ## Provjera
 
