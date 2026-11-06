@@ -42,17 +42,17 @@ Repozitorij možete preuzeti s `git clone` ili kao ZIP (gumb *Code → Download 
 ## Struktura
 
 ```
-P05_odziv_zeta.ipynb         bilježnica uz predavanje P05
-P08_konvolucija_zvuk.ipynb   bilježnica uz predavanje P08
-P09_harmonici_zvuk.ipynb     bilježnica uz predavanje P09
-P12_aliasing_zvuk.ipynb      bilježnica uz predavanje P12
-P13_spektar_snimke.ipynb     bilježnica uz predavanje P13
+P05_odziv_zeta.ipynb             bilježnica uz predavanje P05
+P08_konvolucija_zvuk.ipynb       bilježnica uz predavanje P08
+P09_harmonici_zvuk.ipynb         bilježnica uz predavanje P09
+P12_aliasing_zvuk.ipynb          bilježnica uz predavanje P12
+P13_spektar_snimke.ipynb         bilježnica uz predavanje P13
 P15_digitalni_filtar_zvuk.ipynb  bilježnica uz predavanje P15
-zvuk/                        zvučni zapisi (izvor i licenca: LICENSE-sadrzaj.md)
-moj_zvuk/                    vlastite snimke i pokusi (nije u gitu)
-alati/zamjenski_zvuk.py      generira vlastite zamjenske zapise u zvuk/
-tests/test_biljeznice.py     provjera: bilježnice se izvode (i s vlastitim WAV-om), dopuštene datoteke, licence
-requirements.txt             Python paketi
+zvuk/                            zvučni zapisi (izvor i licenca: LICENSE-sadrzaj.md)
+moj_zvuk/                        vlastite snimke i pokusi (nije u gitu)
+alati/zamjenski_zvuk.py          generira vlastite zamjenske zapise u zvuk/
+tests/test_biljeznice.py         provjera: bilježnice se izvode (i s vlastitim WAV-om), dopuštene datoteke, licence
+requirements.txt                 Python paketi
 ```
 
 Zapisi u `zvuk/` su zamjenski: generira ih `python alati/zamjenski_zvuk.py`. U `zvuk/` su
@@ -94,6 +94,9 @@ U bilježnici P15 vlastiti zapis (govor ili glazba uz šum ventilatora) zadajte 
 `SNIMKA = "moj_zvuk/govor_ventilator.wav"` ili gumbom za prijenos. Bilježnica ga pripremi istom
 funkcijom (frekvencija uzorkovanja `FS` zadano 16 kHz, najviše `MAX_SNIMKA_S` = 10 s) i
 filtrira odabranim filtrom.
+
+Bilježnice P05, P09 i P12 vlastiti zapis ne koriste: P05 nema zvuka, a P09 i P12 zvukove
+sintetiziraju iz zadanih frekvencija, jer se na tome i temelji pokus.
 
 Za automatske testove putanje se mogu zadati i varijablama okoline `P08_ULAZ`,
 `P08_ODZIV`, `P13_SNIMKA` i `P15_SNIMKA` (vrijede kad je polje u postavkama prazno).
