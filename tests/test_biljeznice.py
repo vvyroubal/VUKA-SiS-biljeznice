@@ -39,6 +39,10 @@ def test_postoji_barem_jedna_biljeznica():
     assert BILJEZNICE, "u korijenu repozitorija nema nijedne .ipynb"
     # popis zvučnih bilježnica ne zastarijeva: svaka postoji
     assert ZVUCNE <= {p.stem for p in BILJEZNICE}, ZVUCNE
+    # i obratno: svaka bilježnica koja nudi zvuk (Audio) je na popisu
+    sa_zvukom = {p.stem for p in BILJEZNICE if "Audio(" in "".join(
+        "".join(c["source"]) for c in json.loads(p.read_text(encoding="utf-8"))["cells"])}
+    assert sa_zvukom <= ZVUCNE, sa_zvukom - ZVUCNE
 
 
 def _klijent(nb):
@@ -388,9 +392,11 @@ def _vrhovi_zica(p: dict, snimka, N: int, prozor: str) -> int:
 
 def test_p13_razlucivanje_zadane_snimke(monkeypatch):
     """Prikaz razlučivanja u odjeljcima 4 i 5 bilježnice P13 ovisi o zadanoj snimci (SJEME,
-    F0, RASTIMANOST, HARMONICI): osnovni tonovi dviju žica uz pravokutni prozor daju jedan vrh
-    uz zadani N = 2048, a dva od N = 4096; uz Hannov prozor jedan vrh i uz N = 4096, a dva od
-    N = 8192. Promjena snimke koja to pokvari ruši ovaj test."""
+    F0, RASTIMANOST, HARMONICI): u spektru s nadopunom nulama ×16 (kao u „Pokušajte sami” 1;
+    bez nadopune vrhovi se mogu izgubiti između binova) osnovni tonovi dviju žica uz
+    pravokutni prozor daju jedan vrh uz zadani N = 2048, a dva od N = 4096; uz Hannov prozor
+    jedan vrh i uz N = 4096, a dva od N = 8192. Promjena snimke koja to pokvari ruši ovaj
+    test."""
     p = _p13_funkcije(monkeypatch)
     snimka = p["sinteza"]()
     ocekivano = {("pravokutni", 2048): 1, ("pravokutni", 4096): 2, ("pravokutni", 8192): 2,
