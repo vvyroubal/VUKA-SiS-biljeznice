@@ -15,7 +15,7 @@ Autor: mr.sc. Vedran Vyroubal
 | `P08_konvolucija_zvuk.ipynb` | P08 | 8. Konvolucija i impulsni odziv | konvolucija suhog zvučnog zapisa s impulsnim odzivom prostorije (snimkom pucnja); slušanje, grafovi i klizači za udio odjeka i duljinu odziva; vlastiti ulazni zapis i impulsni odziv (WAV) |
 | `P09_harmonici_zvuk.ipynb` | P09 | 9. Fourierov red i Fourierova transformacija | zbrajanje harmonika pravokutnog, pilastog i trokutnog vala (f₀ = 220 Hz) s klizačem za broj harmonika N; djelomični zbroj i spektar (linije b_k); slušanje djelomičnih zbrojeva; Gibbsova pojava uz skok; isti amplitudni spektar s drukčijim fazama |
 | `P12_aliasing_zvuk.ipynb` | P12 | 12. Uzorkovanje i diskretni signali | čujni aliasing: ton uzorkovan preniskom frekvencijom uzorkovanja, s klizačima za frekvenciju tona f i frekvenciju uzorkovanja f_s; prividna frekvencija i graf savijanja; klizni ton koji iznad f_s/2 „pada natrag”; isto uzorkovanje nakon anti-aliasing filtra za usporedbu |
-| `P13_spektar_snimke.ipynb` | P13 | 13. Fourierova transformacija diskretnih signala | jednostrani amplitudni spektar snimke (zadana sintetička: dvije gotovo jednako ugođene žice s harmonicima, tiho brujanje i šum; ili vlastiti WAV) s klizačima za duljinu odsječka N, prozor (pravokutni ili Hannov) i nadopunu nulama; frekvencijska rezolucija, curenje spektra i bočni režnjevi prozora; spektrogram |
+| `P13_spektar_snimke.ipynb` | P13 | 13. Fourierova transformacija diskretnih signala | jednostrani amplitudni spektar snimke (zadana sintetička: dvije gotovo jednako ugođene žice s harmonicima, tiho brujanje i šum; ili vlastiti WAV) s klizačima za duljinu odsječka N, prozor (pravokutni ili Hannov) i nadopunu nulama; frekvencijska razlučivost, curenje spektra i bočni režnjevi prozora; spektrogram |
 | `P15_digitalni_filtar_zvuk.ipynb` | P15 | 14. z-transformacija; 15. Prijenosna funkcija diskretnog sustava | digitalni filtar na zvuku (zadani sintetički zapis: melodija, šum i pisak; ili vlastiti WAV): pomični prosjek duljine M (FIR) i IIR filtar prvog reda iz RC kruga s τ_f i T_s = 1/f_s, metodama Euler, ZOH i Tustin, s klizačima za f_c i M; nule i polovi u z-ravnini; modul frekvencijskog odziva u hercima; savijanje frekvencije i predizobličenje; slušanje prije i poslije filtra |
 
 Bilježnice rade bez interneta. Za zvuk (P08, P09, P12, P13, P15) trebaju zvučnici ili
@@ -37,7 +37,7 @@ jupyter lab
 JupyterLab se otvori u pregledniku. Otvorite bilježnicu i pokrenite ćelije redom
 (Shift + Enter) ili izbornikom *Run → Run All Cells*.
 
-Repozitorij možete preuzeti s `git clone` ili kao ZIP (gumb *Code → Download ZIP* na GitHubu).
+Repozitorij možete preuzeti naredbom `git clone` ili kao ZIP (gumb *Code → Download ZIP* na GitHubu).
 
 ## Struktura
 
@@ -96,7 +96,7 @@ funkcijom (frekvencija uzorkovanja `FS` zadano 16 kHz, najviše `MAX_SNIMKA_S` =
 filtrira odabranim filtrom.
 
 Bilježnice P05, P09 i P12 vlastiti zapis ne koriste: P05 nema zvuka, a P09 i P12 zvukove
-sintetiziraju iz zadanih frekvencija, jer se na tome i temelji pokus.
+sintetiziraju iz zadanih frekvencija jer se na tome i temelji pokus.
 
 Za automatske testove putanje se mogu zadati i varijablama okoline `P08_ULAZ`,
 `P08_ODZIV`, `P13_SNIMKA` i `P15_SNIMKA` (vrijede kad je polje u postavkama prazno).
@@ -112,11 +112,11 @@ da su u repozitoriju samo dopuštene vrste datoteka i da svaki zvučni zapis ima
 i dopuštenu licencu (CC0, CC BY 4.0 ili CC BY-SA 4.0). Bilježnice se spremaju bez izlaza
 (*Edit → Clear Outputs of All Cells*).
 
-Bilježnice bez preglednika izvodite ovim testom, a ne s `jupyter nbconvert --execute`. S
-klizačima (ipywidgets) nbconvert katkad čeka do isteka timeouta (opis u
+Bilježnice bez preglednika izvodite ovim testom, a ne naredbom `jupyter nbconvert --execute`. S
+klizačima (ipywidgets) nbconvert katkad čeka do isteka vremenskog ograničenja (opis u
 `tests/test_biljeznice.py`, funkcija `_klijent`). U JupyterLabu toga nema.
 
-Odziv s drugim vremenom odjeka napravite u zasebnoj mapi, da `zvuk/` ostane nepromijenjen:
+Odziv s drugim vremenom odjeka napravite u zasebnoj mapi da `zvuk/` ostane nepromijenjen:
 `python alati/zamjenski_zvuk.py moj_zvuk --rt60 2.5` (mapa `moj_zvuk/` nije u gitu), pa u
 postavkama P08 upišite `ODZIV = "moj_zvuk/odziv_pucanj.wav"`.
 
