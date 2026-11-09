@@ -1,4 +1,4 @@
-# Signali i sustavi — Jupyter bilježnice
+# Signali i sustavi – Jupyter bilježnice
 
 Jupyter bilježnice uz kolegij **Signali i sustavi** (Veleučilište u Karlovcu, stručni
 prijediplomski studij Mehatronika) i udžbenik *Signali i sustavi*. Na predavanju nastavnik s
